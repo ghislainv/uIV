@@ -1,2 +1,2 @@
 # uIV
-Unstructured intraspecific variability and communtiy dynamics
+Unstructured intraspecific variability and community dynamics
