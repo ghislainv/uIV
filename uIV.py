@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 def set_initial_conditions(J=20, K=15, M=625,
                            nprop=10, seed_init=1234):
-    """"Set initial conditions
+    """"Setting initial conditions.
 
     :param J: Number of species.
     :param K: Number of environmental dimensions.
@@ -97,7 +97,7 @@ def simulate_dynamics(J=20, K=15, M=625, seed_init=1234,
                       mortality="deterministic", fecundity="percapita",
                       ndim=1, sp_intercept=False, uIV=False,
                       tmax=10000, seed_dyn=1234):
-    """Simulate dynamics
+    """Simulating community dynamics.
 
     :param J: Number of species.
     :param K: Number of environmental dimensions.
@@ -306,22 +306,22 @@ df_exp = pd.read_csv("outputs/results.csv")
 # Boxplots
 fig = plt.figure(figsize=(15, 10), dpi=300)
 
-plt.subplot(221), plt.title("perf=dist(opt) in ndim and intercept=0, uIV=0")
+plt.subplot(221), plt.title("m1: perf=dist(opt)_ndim and {intercept=0, uIV=0}")
 dm1 = df_exp.loc[(df_exp["intercept"] == 0) & (df_exp["uIV"] == 0)]
 sns.boxplot(x="ndim", y="diversity", data=dm1, color="white")
 sns.stripplot(x="ndim", y="diversity", data=dm1, hue="seed_dyn")
 
-plt.subplot(222), plt.title("intercept=0, uIV=1")
+plt.subplot(222), plt.title("m2: perf=dist(opt)_ndim and {intercept=0, uIV=1}")
 dm1 = df_exp.loc[(df_exp["intercept"] == 0) & (df_exp["uIV"] == 1)]
 sns.boxplot(x="ndim", y="diversity", data=dm1, color="white")
 sns.stripplot(x="ndim", y="diversity", data=dm1, hue="seed_dyn")
 
-plt.subplot(223), plt.title("intercept=1, uIV=0")
+plt.subplot(223), plt.title("m3: perf=dist(opt)_ndim and {intercept=1, uIV=0}")
 dm1 = df_exp.loc[(df_exp["intercept"] == 1) & (df_exp["uIV"] == 0)]
 sns.boxplot(x="ndim", y="diversity", data=dm1, color="white")
 sns.stripplot(x="ndim", y="diversity", data=dm1, hue="seed_dyn")
 
-plt.subplot(224), plt.title("intercept=1, uIV=1")
+plt.subplot(224), plt.title("m4: perf=dist(opt)_ndim and {intercept=1, uIV=1}")
 dm1 = df_exp.loc[(df_exp["intercept"] == 1) & (df_exp["uIV"] == 1)]
 sns.boxplot(x="ndim", y="diversity", data=dm1, color="white")
 sns.stripplot(x="ndim", y="diversity", data=dm1, hue="seed_dyn")
