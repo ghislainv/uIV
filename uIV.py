@@ -3,37 +3,47 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from tqdm import tqdm
+
+# =====================================================
+# Function to set initial conditions
+# =====================================================
 
 
 def set_initial_conditions(J=20, K=15, M=625,
                            nprop=10, seed_init=1234):
     """"Set initial conditions
 
-    :param J: nb species.
-    :param K: nb env dim.
-    :param M: nb sites.
-    :param nprop: nb of initial propagules per species.
-    :param seed_init: seed for initila conditions.
+    :param J: Number of species.
+    :param K: Number of environmental dimensions.
+    :param M: Number of sites.
+    :param nprop: Number of initial propagules per species.
+    :param seed_init: Seed for initial conditions.
 
-    :return: A dictionary
+    :return: A dictionary with initial conditions.
     """
 
     # RNG
     rng_init = np.random.default_rng(seed_init)
 
     # Initial parameters
-    E = rng_init.uniform(0, 1, (K, M))  # environment
-    Xopt = rng_init.uniform(0, 1, (J, K))  # species optima
+    E = rng_init.uniform(0, 1, (K, M))  # Environment
+    Xopt = rng_init.uniform(0, 1, (J, K))  # Species optima
 
     # Initial occupancy
-    Occ = np.zeros(M, dtype='int')-1
+    Occ = np.zeros(M, dtype="int")-1
     initial_pos = rng_init.choice(
         np.where(Occ < 0)[0], size=J*nprop, replace=False)
     for j in range(J):
         Occ[initial_pos[j*nprop:(j+1)*nprop]] = j
 
     return {"Occ": Occ, "E": E, "Xopt": Xopt}
+
+
+# =====================================================
+# Function to compute propagule performance
+# =====================================================
 
 
 def calc_perf_propagules(E, Xopt, ndim, propagule_pos, propagule_sp,
@@ -45,16 +55,19 @@ def calc_perf_propagules(E, Xopt, ndim, propagule_pos, propagule_sp,
     The performance of a propagule depends on both the environment and
     the species optima. Residuals associated with the missing
     dimensions can be added to the performance computation. Per
-    species residuals have a mean and standard deviation. Either the
+    species residuals have a mean and a standard deviation. Either the
     mean or standard deviation of the species residuals or both can be
-    taken into account to compute species (and thus propagule)
-    performances.
+    taken into account to compute species and propagule performances.
 
     :param E: K x M np.array. Environment with K dimensions on M sites.
     :param Xopt: J x K np.array. Species optima for the K dimensions.
     :param ndim: Number of observed environmental dimensions.
     :param propagule_pos: Sites reached by propagules.
     :param propagule_sp: Species for each propagule.
+    :param mu_res: Residual mean per sp. due to unobserved dimensions.
+    :param sig_res: Residual std per sp. due to unobserved dimensions.
+    :param mup: Mean performance of all species on all sites.
+    :param sigp: Std of the performance of all species on all sites.
     :param sp_intercept: Add species intercept from missing dimensions.
     :param uIV: Add random IV from missing dimensions.
     :param rng_dyn: RNG for dynamics.
@@ -74,6 +87,11 @@ def calc_perf_propagules(E, Xopt, ndim, propagule_pos, propagule_sp,
     return (perf-mup)/sigp
 
 
+# =====================================================
+# Function to simulate the community dynamics
+# =====================================================
+
+
 def simulate_dynamics(J=20, K=15, M=625, seed_init=1234,
                       death=0.01, nprop=10, fecund=0.5,
                       mortality="deterministic", fecundity="percapita",
@@ -81,9 +99,9 @@ def simulate_dynamics(J=20, K=15, M=625, seed_init=1234,
                       tmax=10000, seed_dyn=1234):
     """Simulate dynamics
 
-    :param J: nb species.
-    :param K: nb env dim.
-    :param M: nb sites.
+    :param J: Number of species.
+    :param K: Number of environmental dimensions.
+    :param M: Number of sites.
     :param seed_init: Random seed for initial conditions.
 
     :param death: Fraction of dead individuals per turn.
@@ -92,7 +110,7 @@ def simulate_dynamics(J=20, K=15, M=625, seed_init=1234,
         abundance-dependent fecundity).
 
     :param mortality: Either "deterministic" or "random".
-    :param percapita: Either "fixed" or "percapita".
+    :param fecundity: Either "fixed" or "percapita".
 
     :param ndim: Number of observed dimensions (ndim <= K).
     :param sp_intercept: Add species intercept from missing dimensions.
@@ -113,6 +131,8 @@ def simulate_dynamics(J=20, K=15, M=625, seed_init=1234,
     Occ = np.copy(init["Occ"])
     E = init["E"]
     Xopt = init["Xopt"]
+
+    # Performance of species on all sites
     perf_tot = np.sum((E[np.newaxis, ...] -
                        Xopt[..., np.newaxis])**2, axis=1)**0.5
     mup, sigp = np.mean(perf_tot), np.std(perf_tot)
@@ -138,21 +158,23 @@ def simulate_dynamics(J=20, K=15, M=625, seed_init=1234,
     table = []
     x = np.array([np.sum(Occ == j) for j in range(J)])
     p = x/np.sum(x)
-    dic = {'diversity': np.sum(x > 0),
-           'shannon': np.exp(-np.sum(p[p > 0]*np.log(p[p > 0]))),
-           'occupation': np.mean(Occ >= 0),
-           'mean_performance': np.nanmean(Perf)}
+    dic = {"iteration": 0,
+           "diversity": np.sum(x > 0),
+           "shannon": np.exp(-np.sum(p[p > 0]*np.log(p[p > 0]))),
+           "occupation": np.mean(Occ >= 0),
+           "mean_performance": np.nanmean(Perf)}
     table.append(dic)
 
+    # Iterations
     for t in tqdm(range(tmax)):
 
         # Death
-        occupied = np.where(Occ >= 0)[0].astype('int')
+        occupied = np.where(Occ >= 0)[0].astype("int")
         worst = []
-        if mortality == 'deterministic':
+        if mortality == "deterministic":
             # The worst x% die
             worst = occupied[np.argsort(Perf[occupied])[:int(M*death)]]
-        elif mortality == 'random':
+        elif mortality == "random":
             # x% die at random (just a test, not in the paper)
             worst = rng_dyn.choice(occupied, size=int(M*death))
         Occ[worst] = -1
@@ -189,55 +211,119 @@ def simulate_dynamics(J=20, K=15, M=625, seed_init=1234,
         # Summary outcomes
         x = np.array([np.sum(Occ == j) for j in range(J)])
         p = x/np.sum(x)
-        dic = {'diversity': np.sum(x > 0),
-               'shannon': np.exp(-np.sum(p[p > 0]*np.log(p[p > 0]))),
-               'occupation': np.mean(Occ >= 0),
-               'mean_performance': np.nanmean(Perf)}
+        dic = {"iteration": t + 1,
+               "diversity": np.sum(x > 0),
+               "shannon": np.exp(-np.sum(p[p > 0]*np.log(p[p > 0]))),
+               "occupation": np.mean(Occ >= 0),
+               "mean_performance": np.nanmean(Perf)}
         table.append(dic)
 
     return {"dynamics": pd.DataFrame(table), "community": Occ}
 
 
-# perf = 0 --> neutral: all species coexist
-r = simulate_dynamics(ndim=0, sp_intercept=False, uIV=False)
-r["dynamics"]
+# =====================================================
+# Experiment
+# =====================================================
 
-# perf = mu --> 1 species dominates
-r = simulate_dynamics(ndim=0, sp_intercept=True, uIV=False)
-r["dynamics"]
+# Dataframe to store results
+df = pd.DataFrame(columns=["seed_init", "seed_dyn", "mortality",
+                           "fecundity", "intercept", "uIV", "ndim",
+                           "iteration", "diversity", "shannon",
+                           "occupation", "mean_perf"])
 
-# perf = mu + delta --> a higher number of species coexist (5)
-r = simulate_dynamics(ndim=0, sp_intercept=True, uIV=True)
-r["dynamics"]
+# Selection of dimensions to avoid iterating over all values of K
+ndim_sel = [0, 1, 3, 6, 9, 12, 14, 15]
+for i in ndim_sel:
 
-# perf = delta, delta ~ N(0, \sigma^2) --> neutral
-r = simulate_dynamics(ndim=0, sp_intercept=False, uIV=True)
-r["dynamics"]
+    # Number of repetitions
+    N_REP_INIT = 2
+    N_REP_DYN = 2
 
-r = simulate_dynamics(ndim=1, sp_intercept=True, uIV=False)
-r["dynamics"]
+    # Iterations
+    TMAX = 10000
 
-r = simulate_dynamics(ndim=15, sp_intercept=False, uIV=False)
-r["dynamics"]
+    # Seeds
+    rng_exp = np.random.default_rng(1234)
+    S_init = rng_exp.integers(10000, size=N_REP_INIT)
+    S_dyn = rng_exp.integers(10000, size=N_REP_DYN)
 
-r = simulate_dynamics(ndim=1, sp_intercept=False, uIV=False)
-r["dynamics"]
+    print(f"Dimension: {i}")
 
+    # Loop on repetitions
+    for j in range(N_REP_INIT):
+        for k in range(N_REP_DYN):
 
-########################
-# RESULTS
-results = r["dynamics"]
-plt.figure()
-plt.subplot(221), plt.title('Occupation')
-plt.plot(results['occupation'])
-plt.subplot(222), plt.title('Diversity')
-plt.plot(results['diversity'], label='number')
-plt.plot(results['shannon'], label='shannon')
-plt.legend()
-plt.subplot(223), plt.title('Performance')
-plt.plot(results['mean_performance'])
-plt.subplot(224), plt.title('Final landscape occupation')
-x = r["community"].copy().astype('float')
-x[x < 0] = np.nan
-plt.colorbar(plt.imshow(x.reshape((25, 25)), cmap='jet'))
-plt.show()
+            # IK model with low dimensions
+            sp_int, uIV, mort, fec = False, False, "deterministic", "percapita"
+            r = simulate_dynamics(ndim=i, sp_intercept=sp_int, uIV=uIV,
+                                  tmax=TMAX,
+                                  mortality=mort, fecundity=fec,
+                                  seed_init=S_init[j], seed_dyn=S_dyn[k])
+            rr = r["dynamics"].iloc[TMAX].tolist()
+            ll = [S_init[j], S_dyn[k], mort, fec, sp_int, uIV, i] + rr
+            df.loc[len(df)] = ll
+
+            # IK model with low dimensions and intercept
+            sp_int, uIV, mort, fec = True, False, "deterministic", "percapita"
+            r = simulate_dynamics(ndim=i, sp_intercept=sp_int, uIV=uIV,
+                                  tmax=TMAX,
+                                  mortality=mort, fecundity=fec,
+                                  seed_init=S_init[j], seed_dyn=S_dyn[k])
+            rr = r["dynamics"].iloc[TMAX].tolist()
+            ll = [S_init[j], S_dyn[k], mort, fec, sp_int, uIV, i] + rr
+            df.loc[len(df)] = ll
+
+            # IK model with low dimensions and uIV
+            sp_int, uIV, mort, fec = False, True, "deterministic", "percapita"
+            r = simulate_dynamics(ndim=i, sp_intercept=sp_int, uIV=uIV,
+                                  tmax=TMAX,
+                                  mortality=mort, fecundity=fec,
+                                  seed_init=S_init[j], seed_dyn=S_dyn[k])
+            rr = r["dynamics"].iloc[TMAX].tolist()
+            ll = [S_init[j], S_dyn[k], mort, fec, sp_int, uIV, i] + rr
+            df.loc[len(df)] = ll
+
+            # IK model with low dimensions, intercept, and uIV
+            sp_int, uIV, mort, fec = True, True, "deterministic", "percapita"
+            r = simulate_dynamics(ndim=i, sp_intercept=sp_int, uIV=uIV,
+                                  tmax=TMAX,
+                                  mortality=mort, fecundity=fec,
+                                  seed_init=S_init[j], seed_dyn=S_dyn[k])
+            rr = r["dynamics"].iloc[TMAX].tolist()
+            ll = [S_init[j], S_dyn[k], mort, fec, sp_int, uIV, i] + rr
+            df.loc[len(df)] = ll
+
+# Saving results
+df.to_csv("outputs/results.csv", index=False)
+
+# =====================================================
+# Plotting results
+# =====================================================
+
+# Load results
+df_exp = pd.read_csv("outputs/results.csv")
+
+# Boxplots
+fig = plt.figure(figsize=(15, 10), dpi=300)
+
+plt.subplot(221), plt.title("perf=dist(opt) in ndim and intercept=0, uIV=0")
+dm1 = df_exp.loc[(df_exp["intercept"] == 0) & (df_exp["uIV"] == 0)]
+sns.boxplot(x="ndim", y="diversity", data=dm1, color="white")
+sns.stripplot(x="ndim", y="diversity", data=dm1, hue="seed_dyn")
+
+plt.subplot(222), plt.title("intercept=0, uIV=1")
+dm1 = df_exp.loc[(df_exp["intercept"] == 0) & (df_exp["uIV"] == 1)]
+sns.boxplot(x="ndim", y="diversity", data=dm1, color="white")
+sns.stripplot(x="ndim", y="diversity", data=dm1, hue="seed_dyn")
+
+plt.subplot(223), plt.title("intercept=1, uIV=0")
+dm1 = df_exp.loc[(df_exp["intercept"] == 1) & (df_exp["uIV"] == 0)]
+sns.boxplot(x="ndim", y="diversity", data=dm1, color="white")
+sns.stripplot(x="ndim", y="diversity", data=dm1, hue="seed_dyn")
+
+plt.subplot(224), plt.title("intercept=1, uIV=1")
+dm1 = df_exp.loc[(df_exp["intercept"] == 1) & (df_exp["uIV"] == 1)]
+sns.boxplot(x="ndim", y="diversity", data=dm1, color="white")
+sns.stripplot(x="ndim", y="diversity", data=dm1, hue="seed_dyn")
+
+fig.savefig("outputs/results.png")
