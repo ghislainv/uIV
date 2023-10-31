@@ -1,0 +1,7 @@
+matplotlib
+numpy
+pandas
+seaborn
+tqdm
+pylint
+flake8

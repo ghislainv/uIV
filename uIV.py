@@ -1,7 +1,7 @@
 """Theoretical model."""
 
 import os
-import itertools
+import multiprocessing as mp
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -97,21 +97,37 @@ def calc_perf_propagules(E, Xopt, ndim, propagule_pos, propagule_sp,
     if uIV:
         perf += rng_dyn.normal(0, sig_res[propagule_sp], size=perf.shape)
 
-    # Return opposite of distance (-)
+    # Return the opposite of the distance (-)
     return -(perf-mup)/sigp
+
+
+# =====================================================
+# Function to sort and randomize between equal values
+# =====================================================
+
+def argsort_rand(x, rng_dyn=np.random.default_rng(1234)):
+    """Sort and randomize between equal values"""
+    # Draw random numbers of the same size as x
+    y = rng_dyn.random(x.size)
+    # Sort by y then by x with np.lexsort
+    return np.lexsort((y, x))
+
+
+def argmax_rand(x, rng_dyn=np.random.default_rng(1234)):
+    """Random tie-breaking argmax"""
+    return rng_dyn.choice(np.where(x == x.max())[0])
 
 
 # =====================================================
 # Function to simulate the community dynamics
 # =====================================================
 
-
 def simulate_dynamics(J=20, K=15, M=625, seed_init=1234,
                       death=0.01, nprop=10, fecund=0.5,
                       mortality="deterministic", fecundity="percapita",
                       distrib_env="uniform",
                       ndim=1, sp_intercept=False, uIV=False,
-                      tmax=10000, seed_dyn=1234):
+                      tmax=10000, seed_dyn=1234, verbose=True):
     """Simulating community dynamics.
 
     :param J: Number of species.
@@ -135,6 +151,7 @@ def simulate_dynamics(J=20, K=15, M=625, seed_init=1234,
 
     :param tmax: Maximal number of iterations.
     :param seed_dyn: Random seed for dynamics.
+    :param verbose: Print messages and progress bar.
 
     :return: Dataframe of results.
 
@@ -156,7 +173,6 @@ def simulate_dynamics(J=20, K=15, M=625, seed_init=1234,
     mup, sigp = np.mean(perf_tot), np.std(perf_tot)
 
     # Residual mean and sd per species due to missing dimensions
-    # perf_res = np.dot(Xopt[:, ndim:], E[ndim:, :])
     E_dim = E[:ndim, :]
     Xopt_dim = Xopt[:, :ndim]
     perf_obs = np.sum((E_dim[np.newaxis, ...] -
@@ -184,16 +200,17 @@ def simulate_dynamics(J=20, K=15, M=625, seed_init=1234,
     table.append(dic)
 
     # Iterations
-    for t in tqdm(range(tmax)):
+    for t in tqdm(range(tmax), disable=not verbose):
 
         # Death
         occupied = np.where(Occ >= 0)[0].astype("int")
         worst = []
         if mortality == "deterministic":
             # The worst x% die
-            worst = occupied[np.argsort(Perf[occupied])[:int(M*death)]]
+            sorted_perf = argsort_rand(Perf[occupied], rng_dyn)
+            worst = occupied[sorted_perf[:int(M*death)]]
         elif mortality == "random":
-            # x% die at random (just a test, not in the paper)
+            # x% die at random
             worst = rng_dyn.choice(occupied, size=int(M*death))
         Occ[worst] = -1
         Perf[worst] = np.nan
@@ -222,7 +239,7 @@ def simulate_dynamics(J=20, K=15, M=625, seed_init=1234,
                                               rng_dyn)
         for pos in np.unique(propagule_pos):
             candidates = np.where(propagule_pos == pos)[0]
-            best = candidates[np.argmax(propagule_perf[candidates])]
+            best = candidates[argmax_rand(propagule_perf[candidates])]
             Occ[pos] = propagule_sp[best]
             Perf[pos] = propagule_perf[best]
 
@@ -243,11 +260,11 @@ def simulate_dynamics(J=20, K=15, M=625, seed_init=1234,
 # Function to plot results
 # =====================================================
 
-def plot_results(dist, mort, fec):
-    """Plotting results"""
-    # Load results
-    f_in = f"outputs/results_{dist}_{mort}_{fec}.csv"
-    df_exp = pd.read_csv(f_in)
+def plot_results(data_frame, dist, mort, fec):
+    """Plotting results."""
+
+    # Data-frame
+    df_exp = data_frame
 
     # Boxplots
     fig = plt.figure(figsize=(15, 10), dpi=300)
@@ -256,28 +273,28 @@ def plot_results(dist, mort, fec):
                  fontsize=16)
 
     axes = plt.subplot(221)
-    axes.set_title("m1: perf=dist(opt)_ndim and {intercept=0, uIV=0}")
+    axes.set_title("m1: perf~dist(opt)_ndim and {intercept=0, uIV=0}")
     dm1 = df_exp.loc[(df_exp["intercept"] == 0) & (df_exp["uIV"] == 0)]
     sns.boxplot(x="ndim", y="diversity", data=dm1, color="white")
     sns.stripplot(x="ndim", y="diversity", data=dm1, hue="seed_dyn")
     axes.set_ylim(0, 21)
 
     axes = plt.subplot(222)
-    axes.set_title("m2: perf=dist(opt)_ndim and {intercept=0, uIV=1}")
+    axes.set_title("m2: perf~dist(opt)_ndim and {intercept=0, uIV=1}")
     dm1 = df_exp.loc[(df_exp["intercept"] == 0) & (df_exp["uIV"] == 1)]
     sns.boxplot(x="ndim", y="diversity", data=dm1, color="white")
     sns.stripplot(x="ndim", y="diversity", data=dm1, hue="seed_dyn")
     axes.set_ylim(0, 21)
 
     axes = plt.subplot(223)
-    axes.set_title("m3: perf=dist(opt)_ndim and {intercept=1, uIV=0}")
+    axes.set_title("m3: perf~dist(opt)_ndim and {intercept=1, uIV=0}")
     dm1 = df_exp.loc[(df_exp["intercept"] == 1) & (df_exp["uIV"] == 0)]
     sns.boxplot(x="ndim", y="diversity", data=dm1, color="white")
     sns.stripplot(x="ndim", y="diversity", data=dm1, hue="seed_dyn")
     axes.set_ylim(0, 21)
 
     axes = plt.subplot(224)
-    axes.set_title("m4: perf=dist(opt)_ndim and {intercept=1, uIV=1}")
+    axes.set_title("m4: perf~dist(opt)_ndim and {intercept=1, uIV=1}")
     dm1 = df_exp.loc[(df_exp["intercept"] == 1) & (df_exp["uIV"] == 1)]
     sns.boxplot(x="ndim", y="diversity", data=dm1, color="white")
     sns.stripplot(x="ndim", y="diversity", data=dm1, hue="seed_dyn")
@@ -287,29 +304,30 @@ def plot_results(dist, mort, fec):
     fig.savefig(fig_out)
 
 
-# =====================================================
-# Experiment
-# =====================================================
+# ===========================================================
+# Running the experiments with repetitions, intercept and uIV
+# ===========================================================
 
-# Model type with variable species parameters: intercept and variance
-sp_intercept = [False, True]
-sp_variance = [False, True]
-sp_int_var = list(itertools.product(sp_intercept, sp_variance))
+def run_experiment(distrib_env, mortality, fecundity, verbose=True):
+    """Run experiment.
 
-# Model type with variable demographic processes
-dist_env = ["uniform", "normal"]
-mortality = ["deterministic", "random"]
-fecundity = ["fixed", "percapita"]
-dist_mort_fec = list(itertools.product(dist_env, mortality, fecundity))
+    :param distrib_env: Distribution for the environment.
+    :param mortality: Either "deterministic" or "random".
+    :param fecundity: Either "fixed" or "percapita".
+    :param verbose: Print messages and progress bar.
 
-# Loop on demographic processes
-for (dist, mort, fec) in dist_mort_fec:
+    """
 
     # Output file
-    f_out = f"outputs/results_{dist}_{mort}_{fec}.csv"
+    f_out = f"outputs/results_{distrib_env}_{mortality}_{fecundity}.csv"
 
     # Run only if not output file
     if not os.path.isfile(f_out):
+
+        # Model type with variable species parameters: intercept and variance
+        sp_intercept = [False, True]
+        sp_variance = [False, True]
+        sp_int_var = [(i, j) for i in sp_intercept for j in sp_variance]
 
         # Dataframe to store results
         df = pd.DataFrame(columns=["seed_init", "seed_dyn", "mortality",
@@ -318,8 +336,8 @@ for (dist, mort, fec) in dist_mort_fec:
                                    "occupation", "mean_perf"])
 
         # Message
-        print((f"MODEL | Distribution: {dist}, "
-               f"Mortality: {mort}, Fecundity: {fec}"))
+        print((f"MODEL | Distribution: {distrib_env}, "
+               f"Mortality: {mortality}, Fecundity: {fecundity}"))
         # Selection of dimensions to avoid iterating over all values of K
         ndim_sel = [0, 1, 3, 6, 9, 12, 14, 15]
         for i in ndim_sel:
@@ -336,7 +354,8 @@ for (dist, mort, fec) in dist_mort_fec:
             S_init = rng_exp.integers(10000, size=N_REP_INIT)
             S_dyn = rng_exp.integers(10000, size=N_REP_DYN)
 
-            print(f"-- Dimension: {i}")
+            if verbose:
+                print(f"-- Dimension: {i}")
 
             # Loop on repetitions
             for j in range(N_REP_INIT):
@@ -346,17 +365,44 @@ for (dist, mort, fec) in dist_mort_fec:
                         r = simulate_dynamics(ndim=i, sp_intercept=sp_int,
                                               uIV=sp_var,
                                               tmax=TMAX,
-                                              mortality=mort, fecundity=fec,
-                                              distrib_env=dist,
+                                              mortality=mortality,
+                                              fecundity=fecundity,
+                                              distrib_env=distrib_env,
                                               seed_init=S_init[j],
-                                              seed_dyn=S_dyn[k])
+                                              seed_dyn=S_dyn[k],
+                                              verbose=verbose)
                         rr = r["dynamics"].iloc[TMAX].tolist()
-                        ll = [S_init[j], S_dyn[k], mort,
-                              fec, sp_int, sp_var, i] + rr
+                        ll = [S_init[j], S_dyn[k], mortality,
+                              fecundity, sp_int, sp_var, i] + rr
                         df.loc[len(df)] = ll
 
-            # Saving results
-            df.to_csv(f_out, index=False)
+        # Saving results
+        df.to_csv(f_out, index=False)
 
-    # Plotting results
-    plot_results(dist, mort, fec)
+        # Plotting results
+        plot_results(df, distrib_env, mortality, fecundity)
+
+
+# ==========================================
+# Parallelize for demography and environment
+# ==========================================
+
+
+# Model type with variable demographic processes
+dist_env = ["uniform", "normal"]
+mortality = ["deterministic", "random"]
+fecundity = ["fixed", "percapita"]
+args = [(i, j, k, False) for i in dist_env
+        for j in mortality for k in fecundity]
+ncpu_max = mp.cpu_count() - 1
+ncpu = np.min([len(args), ncpu_max])
+
+# Create and configure the process pool
+with mp.Pool(processes=ncpu) as pool:
+    # Issues tasks to process pool
+    result = pool.starmap_async(run_experiment, args)
+    # Wait for tasks to complete
+    result.wait()
+    # Process pool is closed automatically
+
+# End of file
