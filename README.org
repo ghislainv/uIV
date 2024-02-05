@@ -15,7 +15,7 @@ This GitHub repository =ghislainv/uIV= includes the code used to answer reviewer
 # [[https://doi.org/10.24072/pci.ecology.100466][file:img/badge_PCI_Ecology.png]]
 #+html: <a href="https://doi.org/10.24072/pci.ecology.100466"><img src="img/badge_PCI_Ecology.png" alt="PCI Ecology badge" style="width:150px;"></a>
 
-This article has been [[doi:10.24072/pci.ecology.100466][recommended]] by Matthieu Barbier for /PCI Ecology/ based on reviews by Simon Blanchet and Bart Haegeman.
+This article has been [[https://doi.org/10.24072/pci.ecology.100466][recommended]] by Matthieu Barbier for /PCI Ecology/ based on reviews by Simon Blanchet and Bart Haegeman.
 
 * Running the code
 
@@ -29,13 +29,15 @@ pip install -r requirements.txt
 python3 uIV.py
 #+end_src
 
-Simply remove the .venv directory if you want to remove the virtual environment.
+Simply remove the =.venv= directory if you want to remove the virtual environment.
 
 #+begin_src shell
-rm -r ./.venv
+rm -r .venv
 #+end_src
 
 An output directory is created which contains simulation results. A summary figure is provided for each model type:
 
 #+attr_html: :width 500px
 [[file:outputs_article/0_results_uniform_deterministic_percapita.png]]
+
+# End Of File
