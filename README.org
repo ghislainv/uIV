@@ -1,9 +1,9 @@
-#+options: toc:nil title:nil author:nil ^:{} num:t date:nil
+#+options: toc:nil title:nil author:nil ^:{} num:nil date:nil
 #+tags: export(e) noexport(n) ignore(i)
 #+export_select_tags: export
 #+export_exclude_tags: noexport
 
-* Beyond variance: unstructured intraspecific variability and community dynamics
+* Beyond variance: unstructured intraspecific variability (uIV) and community dynamics
 
 [[doi:10.5281/zenodo.10616717][file:img/zenodo.10616717.svg]]
 
