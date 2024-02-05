@@ -29,15 +29,15 @@ pip install -r requirements.txt
 python3 uIV.py
 #+end_src
 
+An output directory is created which contains simulation results. A summary figure is provided for each model type:
+
+#+attr_html: :width 500px
+[[file:outputs_article/0_results_uniform_deterministic_percapita.png]]
+
 Simply remove the =.venv= directory if you want to remove the virtual environment.
 
 #+begin_src shell
 rm -r .venv
 #+end_src
-
-An output directory is created which contains simulation results. A summary figure is provided for each model type:
-
-#+attr_html: :width 500px
-[[file:outputs_article/0_results_uniform_deterministic_percapita.png]]
 
 # End Of File
