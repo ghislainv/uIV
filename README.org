@@ -5,7 +5,7 @@
 
 * Beyond variance: unstructured intraspecific variability (uIV) and community dynamics
 
-[[doi:10.5281/zenodo.10616717][file:img/zenodo.10616717.svg]]
+[[https://doi.org/10.5281/zenodo.10616716][file:img/zenodo.10616716.svg]]
 
 This GitHub repository =ghislainv/uIV= includes the code used to answer reviewers' comments for the following article:
 
