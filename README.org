@@ -1,6 +1,3 @@
-#+title: uIV
-#+author: Ghislain Vieilledent
-
 #+options: toc:nil title:nil author:nil ^:{} num:t date:nil
 #+tags: export(e) noexport(n) ignore(i)
 #+export_select_tags: export
@@ -16,6 +13,7 @@ This GitHub repository =ghislainv/uIV= includes the code used to answer reviewer
 
 # #+attr_html: :alt PCI Ecology badge :width 150px :style float:left;
 # [[https://doi.org/10.24072/pci.ecology.100466][file:img/badge_PCI_Ecology.png]]
-#+html: <a href="https://doi.org/10.24072/pci.ecology.100466"><img src="img/badge_PCI_Ecology.png" alt="PCI Ecology badge" style="float:left;width:150px;"></a>
+#+html: <a href="https://doi.org/10.24072/pci.ecology.100466"><img src="img/badge_PCI_Ecology.png" alt="PCI Ecology badge" style="width:150px;"></a>
+
 This article has been [[doi:10.24072/pci.ecology.100466][recommended]] by Matthieu Barbier for /PCI Ecology/ based on reviews by Simon Blanchet and Bart Haegeman.
 
