@@ -1,5 +1,8 @@
 # Results
 outputs*
+!outputs_article/
+outputs_article/*
+!outputs_article/0_results_uniform_deterministic_percapita.png
 comments.org
 README.html
 
