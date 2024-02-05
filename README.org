@@ -1,0 +1,11 @@
+* Beyond variance: unstructured intraspecific variability and community dynamics
+
+[[doi:10.5281/zenodo.10616717][file:img/zenodo.10616717.svg]]
+
+First version of the GitHub repository =ghislainv/uIV= including the code for answering reviewers' comments on the following article:
+
+*Girard-Tercieux C., G. Vieilledent, A. T. Clark, J. S. Clark, B. Courbaud, C. Fortunel, G. Kunstler, R. Pélissier, N. Rüger, and I. Maréchaux.* 2024. Beyond variance: simple random distributions are not a good proxy for intraspecific variability in systems with environmental structure. /Peer Community Journal/. doi: [[doi:10.1101/2022.08.06.503032][10.1101/2022.08.06.503032]]. bioRxiv: [[https://doi.org/10.1101/2022.08.06.503032][503032]].
+
+#+attr_html: :alt PCI Ecology badge :width 150px :style float:left;
+[[https://doi.org/10.24072/pci.ecology.100466][file:img/badge_PCI_Ecology.png]]
+This article has been [[doi:10.24072/pci.ecology.100466][recommended]] by Matthieu Barbier for /PCI Ecology/ based on reviews by Simon Blanchet and Bart Haegeman.
